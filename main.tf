@@ -1,37 +1,3 @@
-# resource "google_compute_instance" "benefex_technical_blog" {
-#   count        = var.instance_count
-#   name         = "technical-blog"
-#   machine_type = "e2-small"
-#   zone         = var.gcp_zone
-
-#   tags = ["http", "techBlog"]
-
-#   boot_disk {
-#     initialize_params {
-#       image = "windows-server-2019-v20220316"
-#       labels = {
-#         environment = "techBlog"
-#       }
-#     }
-#   }
-
-#   network_interface {
-#     network = google_compute_network.technical_blog.name
-
-#     access_config {}
-#   }
-
-#   metadata_startup_script = "echo 'Hello World' > /hello.txt"
-
-#   service_account {
-#     scopes = ["userinfo-email", "compute-ro", "storage-ro"]
-#   }
-
-#   scratch_disk {
-#     interface = "SCSI"
-#   }
-# }
-
 resource "google_compute_instance_template" "technical_blog" {
   name         = var.name
   description  = "This template is used to create app server instances."
@@ -43,12 +9,21 @@ resource "google_compute_instance_template" "technical_blog" {
     on_host_maintenance = "MIGRATE"
   }
 
+  // Create a new boot disk from an image
   disk {
-    source_image = "windows-server-2022-dc-v20230315"
+    source_image = var.image
     boot         = true
     labels = {
       environment = "techblog"
     }
+  }
+
+  # Additional drive
+  disk {
+    // Instance Templates reference disks by name, not self link
+    source      = google_compute_disk.additional_disk.name
+    auto_delete = false
+    boot        = false
   }
 
   network_interface {
@@ -63,6 +38,12 @@ resource "google_compute_instance_template" "technical_blog" {
   }
 }
 
+resource "google_compute_disk" "additional_disk" {
+  name  = var.name
+  image = var.image
+  size  = 10
+  type  = "pd-ssd"
+}
 
 resource "google_compute_region_instance_group_manager" "technical_blog" {
   name = var.name
@@ -74,15 +55,6 @@ resource "google_compute_region_instance_group_manager" "technical_blog" {
   version {
     instance_template = google_compute_instance_template.technical_blog.id
   }
-
-  # all_instances_config {
-  #   metadata = {
-  #     metadata_startup_script = "echo 'Hello World' > /hello.txt"
-  #   }
-  #   labels = {
-  #     environment = "techBlog"
-  #   }
-  # }
 
   target_size = 2
 

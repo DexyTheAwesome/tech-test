@@ -28,3 +28,8 @@ variable "name" {
   description = "Name of resources"
   default     = "technical-blog"
 }
+
+variable "image" {
+  type        = string
+  description = "Google Cloud Provider image to be used"
+}
